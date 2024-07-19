@@ -1,0 +1,163 @@
+<?xml version="1.0"?>
+
+<project name="tags" default="jar" basedir=".">
+	
+	<!-- Property files -->
+	<property file="build.properties" />
+ 	<property name="lib.dir" location="lib" />
+  <property name="app.name" 		value="${app.name}" />
+  <property name="build.dir"   	value="${basedir}/build" />
+  <property name="src.dir" 		value="${basedir}/src" />
+  <property name="lib.dir"		value="${basedir}/lib" />
+  <property name="build.lib" 		value="${build.dir}/lib" />
+  <property name="reports.dir" 		value="${basedir}/reports" />
+  <property name="docs.dir" 		value="${basedir}/doc" />
+	<property name="project.jar" 		value="${app.name}.jar" />
+	<property name="build.src" 		value="${build.dir}/src" />
+  <property name="build.classes"  value="${build.dir}/${app.name}/WEB-INF/classes" />
+    
+  <path id="compile.classpath">
+  	<fileset dir="${lib.dir}">
+    	<include name="**/*.jar"/>
+  	</fileset>
+	</path>
+  
+  <path id="run.classpath">
+  	<!-- Este se pone para cargar el log4j.properties -->
+  	<pathelement path="${basedir}" />
+  	
+		<path refid="compile.classpath"/>
+		<pathelement location="${build.lib}/${project.jar}"/>  	
+	</path>
+  
+  <target name="clean" >
+  	<delete dir="${build.dir}" />
+ 	</target>
+
+	<target name="prepare" depends="clean" description="Create build directories.">
+  	<mkdir dir="${build.dir}/${app.name}" />
+    <mkdir dir="${build.dir}/${app.name}/WEB-INF" />
+    <mkdir dir="${build.dir}/${app.name}/WEB-INF/classes" />
+    <mkdir dir="${build.dir}/${app.name}/WEB-INF/lib" />
+    <mkdir dir="${build.dir}/${app.name}/WEB-INF/jsp" />
+	</target>
+ 
+<!-- =================================================================== -->
+<!-- Construir el paquete JAR principal							        						 -->
+<!-- =================================================================== -->
+
+<target name="compile" depends="prepare" description="Compila los directorios fuente.">
+	<mkdir dir="${build.dir}"/>
+	<!-- Compilar directorios fuente -->
+	<javac destdir="${build.dir}" classpathref="compile.classpath">
+		<src path="${src.dir}" />
+	</javac>
+</target>
+
+<target name="jar" depends="compile" description="Crear los jars de la aplicacion">
+	<!-- Crear directorio build/lib para colocar paquetes -->
+	<mkdir dir="${build.lib}"/>
+	<!-- Construir -->
+	<jar jarfile="${build.lib}/${project.jar}" basedir="${build.dir}" includes="**/**"/>
+</target>
+
+	
+
+<!--******************************************* DOMAIN TASKS ************************************** -->
+
+
+<target name="tag" depends="jar" description="Obtener etiquetas">
+		
+		<echo message="Tagging..." />
+		
+		<java classname="FCloud" fork="true">
+		 
+		 <classpath refid="run.classpath"/>
+		 
+		 <arg value="data/prueba_tags_preproc.txt"/>
+		 <arg value="30"/>
+		 	
+		</java>
+</target>
+
+<target name="tagfolder" depends="jar" description="Muestra tag cloud en html">
+	       <java classname="CloudGen" fork="true">
+
+	       <classpath refid="run.classpath"/>
+	       <arg value="data/articulos/"/> <!-- Documents' path -->
+	       <arg value="data/tagclouds/"/>
+	       <arg value="data/stopwords"/>
+	       <arg value="30"/> <!--Max tags-->
+	       <arg value="100"/> <!--Max weight per tag-->
+
+	       </java>
+</target>
+
+<target name="tagdoc" depends="jar" description="Muestra tag cloud en html">
+	       <java classname="CloudGen" fork="true">
+
+	       <classpath refid="run.classpath"/>
+	       <arg value="data/articulos/"/> <!-- Document's path -->
+	       <arg value="data/tagclouds/"/>
+	       <arg value="data/stopwords"/>
+	       <arg value="30"/> <!--Max tags-->
+	       <arg value="100"/> <!--Max weight per tag-->
+               <arg value="alice"/> <!-- Document name -->
+	       <arg value="single"/>
+
+	       </java>
+</target>
+
+<target name="detect" depends="jar" description="Detectar idioma dado el texto">
+ 
+               <java classname="LangDetectSample" fork="true">
+
+               <classpath refid="run.classpath"/>
+
+               <arg value="other_resources/langdetect-05-09-2011/profiles"/>
+               <arg value="Me gusta el chocolate blanco."/>
+
+               </java>
+</target>
+
+<target name ="javadoc" description="Crea documentacion usando javadoc">
+<javadoc packagenames="src" sourcepath="${src.dir}" destdir="${docs.dir}" excludepackagenames="org.tartarus.snowball.*">
+	<classpath refid="run.classpath"/>	
+	<fileset dir="${src.dir}" defaultexcludes="yes">
+	  <include name ="**"/>
+	  <exclude name="org/**"/>
+	</fileset>
+</javadoc>
+</target>
+<!--******************** TESTING ***********************-->
+
+<target name="run-tests" depends="compile" description="run your test suite" >
+		
+		<junit printsummary="yes" haltonfailure="yes" showoutput="yes" >
+			<classpath>
+				<pathelement path="${build.dir}"/>
+				<fileset dir="lib">
+					<include name="**/*.jar"/>
+				</fileset>
+			</classpath>			
+		
+ 		  <batchtest fork="yes" todir="${reports.dir}/raw/">
+		  	<formatter type="xml"/>
+		    <fileset dir="${src.dir}">
+		      <include name="**/*Test*.java"/>
+		    </fileset>
+		  </batchtest>
+		</junit>	
+	</target>
+	
+  <target name ="test" depends="run-tests" description="Correr pruebas y generar reportes">
+		<junitreport todir="${reports.dir}">
+		  <fileset dir="${reports.dir}/raw/">
+		    <include name="TEST-*.xml"/>
+		  </fileset>
+		  <report format="frames" todir="${reports.dir}\html\"/>
+		</junitreport>
+  </target>
+
+
+</project>

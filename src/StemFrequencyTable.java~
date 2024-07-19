@@ -1,0 +1,65 @@
+import java.util.Hashtable;
+import java.util.Vector;
+import org.tartarus.snowball.*;
+import org.tartarus.snowball.ext.*;
+
+public class StemFrequencyTable {
+
+/*  public static final int en = 1;
+  public static final int es = 2;
+  public static final int fr = 3; */
+  Language currentLang = Language.valueOf(current);
+
+  private Hashtable stems, palabras;
+
+  public StemFrequencyTable() {
+    stems = new Hashtable(15);
+    palabras = new Hashtable(30);
+  }
+
+
+  public enum Language {
+    en,
+    es,
+    fr   
+  }
+
+  public String getStem(String word, String lang) {
+      String key;
+      SnowballStemmer stemmer = null;
+      switch(lang) {
+	case en: {
+	 	  stemmer = new englishStemmer();
+	  	  break;
+		}
+	case es: {
+		  stemmer = new spanishStemmer();
+		  break;
+		}
+	case fr: {
+		  stemmer = new frenchStemmer();
+		  break;
+		}
+    } 
+    stemmer.setCurrent(word);
+    stemmer.stem();
+    key = stemmer.getCurrent();
+    System.out.println(word + " -> " + key);
+    return key;
+  }
+
+  public void findStems(Vector palabras, String lang) {
+    int i;
+    Vector contents;
+    for(i=0; i<palabras.size(); i++) {
+      stems.put( getStem((String)palabras.get(i), lang), (String)palabras.get(i) );
+    }
+    return;
+  }
+
+  public void printTable(Vector palabras) {
+    System.out.println(stems.toString());
+    return;
+  }
+
+}

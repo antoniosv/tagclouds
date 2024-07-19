@@ -1,0 +1,145 @@
+import org.mcavallo.opencloud.*;
+import java.io.*;
+import java.util.*;
+import com.cybozu.labs.langdetect.Detector;
+import com.cybozu.labs.langdetect.DetectorFactory;
+import com.cybozu.labs.langdetect.Language;
+import com.cybozu.labs.langdetect.LangDetectException;
+
+public class CloudGen {
+
+  public static String read(String filePath)
+  {
+    String fullString = new String();
+    fullString = "";
+    try	{
+	  Vector v = GeneralUtils.readFileContents(filePath);
+	  fullString = v.toString();
+	} catch(IOException e) {
+	    System.out.println("IO Exception: " + e.getMessage());
+	  }
+    return fullString;
+  }
+  
+  public static Vector clean(String stringsota)
+  {
+    String dummy = new String();
+    Vector<String> tagVector = new Vector<String>(20, 10);
+    StringTokenizer st = new StringTokenizer(stringsota,".,;:*~!(){}[]|?><' ");
+    dummy = "";
+    while(st.hasMoreTokens()) {
+	dummy = st.nextToken();
+	  if(dummy.length() > 1) { // tokens de tan solo 1 letra no son tomadas en cuenta :)
+	    tagVector.add(dummy);
+	  }
+	  dummy = "";
+	} 
+	return tagVector;
+  }	
+
+  public static String cleanStr(String stringsota)
+  {
+    String tagString = new String();
+    String dummy = new String();
+    tagString = dummy = "";
+    StringTokenizer str = new StringTokenizer(stringsota,".,;:*~!(){}[]|?><' ");
+    while(str.hasMoreTokens()) {
+      tagString = tagString + " " + str.nextToken();  // crea una stringsota con las tokens separadas con espacios
+    }
+    return tagString;
+  }	
+  
+  public static Vector filterSw(Vector bag, String swPath) {
+	Vector<String> sw = new Vector<String>();
+	Vector<String> impWord = new Vector<String>();
+        String stopwords = new String();
+	stopwords = read(swPath);
+	sw = clean(stopwords);
+	int count = 0;
+	int i, j;
+	String slimString = "";
+	String temp = new String();
+	String temp2 = new String();
+	for(i=0; i<bag.size(); i++) {
+		for(j=0; j<sw.size(); j++) {
+		  temp = (String)bag.get(i);
+		  temp = temp.toLowerCase();
+		  temp2 = (String)sw.get(j);
+		  System.out.println(temp + " vs " + temp2);
+		  if(temp.equals(temp2)) {
+		    count++;
+		    break;
+		  }			
+		  /*if( bag.get(i).equals(sw.get(j)) ) { // Es la misma cosa que la anterior, pero este fue un intento con vectores
+			count++;
+			break;
+		  } */
+		}
+		if(count==0) {
+		  impWord.add(temp);
+		}
+		count = 0;
+	}
+    return impWord;
+  }
+
+  public static void main(String[] args) {
+    String grande, path, language;
+    int i;
+    path = args[0];
+    Cloud cloud = new Cloud();
+    Visual html = new Visual(args[1], args[1]);
+    Vector limpio = new Vector();
+    Vector filtrado = new Vector();
+    String important = new String();
+    cloud.setMaxWeight(100.0);
+    cloud.setMaxTagsToDisplay(20);
+    cloud.setDefaultLink("http://lmgtfy.com/?q=%s");
+    grande = read(path);
+    limpio = clean(grande);
+// aqui se debe procesar para detectar idioma por palabra, filtrar stopwords, y hacer stemming, despues se hace la tag cloud :) 
+
+    System.out.println(grande +"\n"+limpio);
+
+// deteccion de idioma de tokens
+/*
+    try{
+      LangDetection detector=new LangDetection();
+      detector.init("other_resources/langdetect-05-09-2011/profiles");
+      eng = new Vector();
+      eng = detector.detectTokens(limpio, "en");
+      
+    }catch(LangDetectException e){
+	System.out.println("Lang exception: " + e.getMessage());
+     }
+
+    System.out.println(eng);
+*/
+// Mismo intento pero con enunciados completos.
+
+    try{
+      LangDetection detector=new LangDetection();
+      detector.init("other_resources/langdetect-05-09-2011/profiles");
+      System.out.println(detector.detect(grande));
+      language = detector.detect(grande);
+    }catch(LangDetectException e){
+	System.out.println("Lang exception: " + e.getMessage());
+     }
+  
+// se filtran stopwords
+    filtrado = filterSw(limpio, args[2]);
+    System.out.println(filtrado);
+/* se hace stemming :o
+    for(i=0; i<filtrado.length(); i++) {
+      
+    }*/
+    StemFrequencyTable stemsPalabra = new StemFrequencyTable();
+    stemsPalabra.findStems(
+
+    important = filtrado.toString();
+    cloud.addText(important);
+    html.displayCloud(cloud);
+
+  }
+
+}
